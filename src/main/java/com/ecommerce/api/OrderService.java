@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class OrderService {
@@ -13,51 +15,60 @@ public class OrderService {
     private OrderRepository orderRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private ProductRepository productRepository;
 
     @Transactional
-    public Order processCheckout(Long userId, Long productId, int quantityToBuy) {
+    public Order placeOrder(User user, List<CartItem> cartItems) {
 
-        // 1. Validate User
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // 2. Validate Product
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-
-        // 3. Check Stock
-        if (product.getQuantity() < quantityToBuy) {
-            throw new InsufficientStockException("Not enough stock available");
+        if (cartItems == null || cartItems.isEmpty()) {
+            throw new RuntimeException("Cart is empty");
         }
 
-        // 4. Deduct Stock
-        product.setQuantity(product.getQuantity() - quantityToBuy);
-        productRepository.save(product);
-
-        // 5. Create Order
         Order order = new Order();
         order.setUser(user);
         order.setOrderDate(new Date());
-        order.setStatus("COMPLETED");
+        order.setStatus("PLACED");
 
-        double totalCost = product.getPrice() * quantityToBuy;
-        order.setTotalAmount(totalCost);
+        List<OrderItem> orderItems = new ArrayList<>();
+        double totalAmount = 0;
 
-        // 6. Create OrderItem
-        OrderItem item = new OrderItem();
-        item.setOrder(order);
-        item.setProduct(product);
-        item.setQuantity(quantityToBuy);
-        item.setPrice(product.getPrice());
+        for (CartItem cartItem : cartItems) {
 
-        // 7. Attach OrderItem to Order
-        order.setItems(java.util.List.of(item));
+            Product product = cartItem.getProduct();
 
-        // 8. Save Order (cascades OrderItem)
+            // stock check
+            if (product.getQuantity() < cartItem.getQuantity()) {
+                throw new InsufficientStockException(
+                        "Not enough stock for product: " + product.getName()
+                );
+            }
+
+            // reduce stock
+            product.setQuantity(product.getQuantity() - cartItem.getQuantity());
+            productRepository.save(product);
+
+            // create order item
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(cartItem.getQuantity());
+            item.setPrice(product.getPrice());
+
+            totalAmount += product.getPrice() * cartItem.getQuantity();
+
+            orderItems.add(item);
+        }
+
+        order.setItems(orderItems);
+        order.setTotalAmount(totalAmount);
+
         return orderRepository.save(order);
+    }
+
+    public List<Order> getOrdersByUser(User user) {
+        return orderRepository.findAll()
+                .stream()
+                .filter(o -> o.getUser().getId().equals(user.getId()))
+                .toList();
     }
 }

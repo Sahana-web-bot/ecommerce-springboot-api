@@ -16,6 +16,7 @@ public class User {
     
     private String username;
     private String email;
+    private String role;
 
     // Getters and Setters
     public Long getId() {
@@ -40,5 +41,13 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+    
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

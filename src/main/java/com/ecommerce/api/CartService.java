@@ -13,6 +13,9 @@ public class CartService {
 
     @Autowired
     private ProductRepository productRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @Transactional
     public CartItem addItemToCart(Long userId, Long productId, int quantity) {
@@ -27,7 +30,10 @@ public class CartService {
 
         // 3. Create and persist the cart item record
         CartItem cartItem = new CartItem();
-        cartItem.setUserId(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        cartItem.setUser(user);
         cartItem.setProduct(product);
         cartItem.setQuantity(quantity);
 
@@ -36,5 +42,14 @@ public class CartService {
 
     public List<CartItem> getUserCart(Long userId) {
         return cartItemRepository.findByUserId(userId);
+    }
+    
+    public void removeCartItem(Long cartItemId) {
+
+        if (!cartItemRepository.existsById(cartItemId)) {
+            throw new RuntimeException("Cart item not found");
+        }
+
+        cartItemRepository.deleteById(cartItemId);
     }
 }

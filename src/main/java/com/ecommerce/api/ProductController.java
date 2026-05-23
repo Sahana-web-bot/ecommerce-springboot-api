@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/products")
@@ -15,7 +16,7 @@ public class ProductController {
 
     // CREATE PRODUCT
     @PostMapping
-    public ProductDTO addProduct(@RequestBody ProductDTO dto) {
+    public ProductDTO addProduct(@Valid @RequestBody ProductDTO dto) {
 
         Product product = new Product();
         product.setName(dto.getName());

@@ -52,4 +52,12 @@ public class CartController {
 
         return dto;
     }
+    
+    @DeleteMapping("/remove/{cartItemId}")
+    public String removeCartItem(@PathVariable Long cartItemId) {
+
+        cartService.removeCartItem(cartItemId);
+
+        return "Cart item removed successfully";
+    }
 }
